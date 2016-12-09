@@ -13,7 +13,7 @@ void setup()
 	while(!arduboy.nextFrame());
 	updateInput();
 	
-	if(UP_DOWN)
+	if(LEFT_DOWN)
 	{
 		defaultProgram();
 	}
