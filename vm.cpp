@@ -3,6 +3,9 @@
 
 unsigned char lineFlags[PROGRAM_CODE_LENGTH/2];
 
+unsigned char ram[PROGRAM_RAM_LENGTH];
+
+
 unsigned char initCode[PROGRAM_CODE_LENGTH] = {
 	//// Reset ////
 	
@@ -200,6 +203,8 @@ unsigned char vmRun(VMState* vmPtr)
 	
 	unsigned char opcode;
 	unsigned char x, y;
+	unsigned char data2;
+	unsigned char mode;
 	
 	bool justResumed = true;
 	
@@ -244,14 +249,129 @@ unsigned char vmRun(VMState* vmPtr)
 			continue;
 		}
 
+
+		// Flags:
+		// 0: Carry
+		// 1: Zero
+		// 2: Overflow
+		// 3: Negative
+		// 4: Same Bit Pattern
+
+
+		// Future: consider more regular instructions, using 4 bytes instead of 2.
+		// No need:
+		// TYA, TXS??
+		// TX
+		
+		// Redundant 6502 Instructions
+		// TYA, TXA, TAY, TAX, TAY, TAX, STX, STA, STY
+		// LDA, LDX, LDY, CPX, CPY
+		// DEX, DEY, INX, INY
+
+		// N/A 6502 Instructions
+		// SEI, SED, RTI, CLD, CLI, BRK
+
+		// Unsure math instructions
+		// CMP                      | sets the registers to nice values
+		// BIT                      | non-destructive bitwise compare
+
+		// cmp r0, r1
+
+		// 6502 Math
+		// ADC, SBC, CLC, SEC       | (r += a), (r -= a), (carry = 0), (carry = 1)
+		// LSR, ORA, ROL, ROR, ASL  | (r >>= a), (r |= a), (r rotl= a), (r rotr= a), (r <<= a)
+		// TSX, TXS, PHA, PLA       | (sp = r), (r = sp), (push r), (pop r)
+		// INC, DEC, EOR, AND       | (++r), (--r), (r ^= a), (r &= a)
+
+
+		// add: Format 2
+		// addi: Format 1
+		// 
+
+
+		// 6502 Control Flow
+		// RTS, JSR, NOP, JMP       | (return), (gosub), (noop), (goto)
+		// PHP, PLP                 | (php), (plp)
+		// BVS, BPL, BNE            | SkipIfOverflow, SkipIfPositive, SkipIfNotEqual
+		// BMI, BEQ, BCS, BCC       | SkipIfNegative, SkipIfEqual, SkipIfCarry, SkipIfNotCarry
+
 		// 1. Register-immediate opcodes.
 		// First Byte: 0rrrcccc
 		// 0 = Zero
 		// r = register
 		// c = opcode
 
+		// ABasmV2
+		// s: store.
+
+		
+		// Format 1: register and absolute.
+		// r = target register
+		// C = opcode
+		// a = absolute vallue
+		// Byte 0: 0rrrCCCC
+		// Byte 1: aaaaaaaa
+
+		// Format 2: two registers
+		// r = target register
+		// C = opcode
+		// x = subcode
+		// a = register 2
+		// Byte 0: 0rrrCCCC
+		// Byte 1: xxxxxaaa
+
+		// Format 3: three registers
+		// r = target register
+		// C = opcode
+		// x = subcode
+		// a = register 2
+		// b = register 3
+		// Byte 0: 0rrrCCCC
+		// Byte 1: xxbbbaaa
+
+		// Format 4: everything else
+		// Byte 0: 1???????
+		// Byte 1: ????????
+
+		// Format 5: absolute
+		// Byte 0: 1CCCCCCC
+		// Byte 1: aaaaaaaa
+		// C = opcode
+		// a = absolute value
+
+
+
+		// Sketchpad
+		// li r0 1
+		// l r1, r0 zero
+
+
+		// Segments.
+		// CurrentCodeSegment
+		// CurrentStackSegment
+		// CurrentDataSegment
+
+		// All memory is mutable.
+		// Multiple Segments can point to same memory page.
+		// Opcode for changing memory pages.
+
+		// Push processor state is important. If we want to
+		// do a gosub to another memory page, we should push the processor
+		// state, then change pages.
+
+		// push pc
+		// push current page
+		// push destination page
+		// 
+
+		// Memory multiplexer.
+		// Option 1: use the "standard multiplexer"
+		// Option 2: Use an external multiplexer circuit.
+
+
+		//COMMANDLIST
 		// 0h, rrr: set immediate
-		// 1h, rrr: add immediate
+		// 1h, rrr: add immediate (6502: ADC)
 		// 2h, rrr: sub immediate
 		// 3h, rrr: mul immediate
 		// 4h, rrr: div immediate
@@ -260,61 +380,339 @@ unsigned char vmRun(VMState* vmPtr)
 		// 7h, rrr: skip!= immediate
 		// 8h, rrr: skip< immediate
 		// 9h, rrr: skip> immediate
-		// ah, rrr:
-		// bh, rrr:
-		// ch, rrr:
-		// dh, rrr:
+		// ah, rrr: load absolute
+		// bh, rrr: store absolute
+		// ch, rrr: register load
+		// dh, rrr: register store
 		// eh, rrr: register-register control flow
 		// fh, rrr: register-register math
 
-		
-		// 2. Register-register math.
-		// Second Byte: ccccrrrr
-		// c = opcode
-		// r = register (special registers r8 and higher accessible)
-		// r8, overflow is set under certain conditions
-		// r9, zero is set under certain conditions
 
-		// 3. Register-register math.
-		// Second Byte: cccccrrr
+
+		// 2. Register load.
+		// Second Byte: ccaaabbb
+		// cc
+		// 00: load r at b
+		// 01: load r at *b
+		// 10: load r at b + a
+		// 11: load r at *b + a
+
+		// 3. Register store.
+		// Second Byte: ccaaabbb
+		// cc
+		// 00: store r at b
+		// 01: store r at *b
+		// 10: store r at b + a
+		// 11: store r at *b + a
+
+		// 4. Register-register control flow.
+		// Second Byte: ccccaaaa
+		// c = opcode
+		// a = register or flag
+
+
+		// Opcode: RegisterSkip
+
+		// Skip If:
+		// 0: (r == a)
+		// 1: (r != a)
+		// 2: (r > a)
+		// 3: (r < a)
+		// 4: (r >= a)
+		// 5: (r <= a)
+
+		// a is 4 bits:
+
+		// 1000 (compare with carry flag)
+		// 1001 (compare with zero flag)
+		// 1010 (compare with overflow flag)
+		// 1011 (compare with negative flag)
+		// 1100 (compare with same bit pattern flag)
+		// 1101 (compare with overflow register)
+		// 1110 (compare with 0xff)
+		// 1111 (compare with 0x00)
+
+		// 5. Register-register math.
+		// Second Byte: cccccaaa
 		// c = opcode
 		// r = register
 
+		// 0: r = a
+		// 1: r += a
+		// 2: r -= a
+		// 3: r >>= a, carry has old low bit
+		// 4: r <<= a, carry has old high bit
+		// 5: r *= a, overflow register has high byte
+		// 6: r /= a
+		// 7: r %= a
+		// 8: r &= a
+		// 9: r |= a
+		// A: r ^= a
+		// B: r rotate right by a
+		// C: r rotate left b a
+
+
 		// 00h, rrr:
 		// 
+
+
+		// Misc: Missing chip-8 stuff.
+		// return
+		// goto
+		// gosub
+		// xor
+		// and
+		// or
+		// rshift
+		// lshift
+
+
+		// Library and I/O routines.
+		// random
+		// draw sprite
+		// delay timer
+		// sound timer
+		// draw string
+		// draw number as string
+		// dump registers
+		// load registers
+
 		
 		if(opcode < 0b10000000) // register opcodes
 		{
 			reg1 = (opcode & 0b01110000) >> 4;
 			opcode &= 0b00001111;
 			
-			if(opcode == 0x00) // set immediate
+			if(opcode == 0x00) // load immediate
 			{
 				vms.registers[reg1] = initCode[vms.pc++];
 			}
+			else if(opcode == 0x01) // add immediate
+			{
+				vms.registers[reg1] += initCode[vms.pc++];
+			}
+			else if(opcode == 0x02) // subtract immediate
+			{
+				vms.registers[reg1] -= initCode[vms.pc++];
+			}
+			else if(opcode == 0x03) // muliply immediate
+			{
+				vms.registers[reg1] *= vms.registers[initCode[vms.pc++]];
+			}
+			else if(opcode == 0x04) // divide immediate
+			{
+				vms.registers[reg1] /= vms.registers[initCode[vms.pc++]];
+			}
+			else if(opcode == 0x05) // mod immediate
+			{
+				vms.registers[reg1] %= vms.registers[initCode[vms.pc++]];
+			}
+			else if(opcode == 0x06) // skip if equal immediate
+			{
+				if(vms.registers[reg1] == initCode[vms.pc++]) vms.skipInstruction = true;
+			}
+			else if(opcode == 0x07) // skip if not equal immediate
+			{
+				if(vms.registers[reg1] != initCode[vms.pc++]) vms.skipInstruction = true;
+			}
+			else if(opcode == 0x08) // skip if less than immediate
+			{
+				if(vms.registers[reg1] < initCode[vms.pc++]) vms.skipInstruction = true;
+			}
+			else if(opcode == 0x09) // skip if greater than immediate
+			{
+				if(vms.registers[reg1] > initCode[vms.pc++]) vms.skipInstruction = true;
+			}
+
+			else if(opcode == 0x0a) // load absolute
+			{
+				vms.registers[reg1] = ram[initCode[vms.pc++]];
+			}
+			else if(opcode == 0x0b) // store absolute
+			{
+				ram[initCode[vms.pc++]] = vms.registers[reg1];
+			}
+
+			else if(opcode == 0x0c) // register load
+			{
+				data2 = vms.pc++;
+				reg2 = data2 & 0b111;
+				reg3 = (data2 >> 3) & 0b111;
+				mode = data2 & 0b11000000;
+
+				// Here's what I want to be able to do:
+				// 1. Get a value from an absolute address. Handled earlier.
+				// Should I define an implicit register for this? an "A" register? Yikes!
+				// load absolute, r0 means *(address + value in r0)
+
+				// Mode 00: r = *a
+				// Mode 01: r = **a
+				// Mode 10: r = *a + b   // Compares to absolute and offset.
+				// Mode 11: r = *a + *b
+
+				if (mode == 0b00000000) // Mode 00
+				{
+					vms.registers[reg1] = vms.registers[reg2];
+				}
+				else if(mode == 0b01000000) // Mode 01
+				{
+					vms.registers[reg1] = ram[vms.registers[reg2]];
+				}
+				else if(mode == 0b10000000) // Mode 10
+				{
+					vms.registers[reg1] = ram[vms.registers[reg2] + vms.registers[reg3]];
+				}
+			}
+			else if(opcode == 0x0e) // RegisterSkip
+			{
+				data2 = vms.pc++;
+				reg2 = data2 & 0b1111;
+				mode = data2 & 0b11110000;
+				x = vms.registers[reg2];
+
+				if (reg2 == 0b1000) x = 0; // Carry flag
+				else if (reg2 == 0b1001) x = 0; // Zero flag
+				else if (reg2 == 0b1010) x = 0; // Overflow flag
+				else if (reg2 == 0b1011) x = 0; // Negative flag
+				else if (reg2 == 0b1100) x = 0; // Same Bit Pattern flag
+				else if (reg2 == 0b1101) x = 0; // Overflow register
+				else if (reg2 == 0b1110) x = 0xff;
+				else if (reg2 == 0b1111) x = 0x00;
+
+				if(mode == 0x00) // Skip if r == a
+				{
+					if(vms.registers[reg1] == x) vms.skipInstruction = true;
+				}
+				else if(mode == 0x10) // Skip if r != a
+				{
+					if(vms.registers[reg1] != x) vms.skipInstruction = true;
+				}
+				else if(mode == 0x20) // Skip if r > a
+				{
+					if(vms.registers[reg1] > x) vms.skipInstruction = true;
+				}
+				else if(mode == 0x30) // Skip if r < a
+				{
+					if(vms.registers[reg1] < x) vms.skipInstruction = true;
+				}
+				else if(mode == 0x40) // Skip if r >= a
+				{
+					if(vms.registers[reg1] < x) vms.skipInstruction = true;
+				}
+				else if(mode == 0x50) // Skip if r <= a
+				{
+					if(vms.registers[reg1] < x) vms.skipInstruction = true;
+				}
+			}
+			else if(opcode == 0x0f) // RegisterMath
+			{
+				data2 = vms.pc++;
+				reg2 = data2 & 0b1111;
+				mode = data2 & 0b11110000;
+				x = vms.registers[reg2];
+
+				if (reg2 == 0b1000) x = 0; // Carry flag
+				else if (reg2 == 0b1001) x = 0; // Zero flag
+				else if (reg2 == 0b1010) x = 0; // Overflow flag
+				else if (reg2 == 0b1011) x = 0; // Negative flag
+				else if (reg2 == 0b1100) x = 0; // Same Bit Pattern flag
+				else if (reg2 == 0b1101) x = 0; // Overflow register
+				else if (reg2 == 0b1110) x = 0xff;
+				else if (reg2 == 0b1111) x = 0x00;
+
+				if(mode == 0x00) // r = a
+				{
+					vms.registers[reg1] = x;
+				}
+				else if(mode == 0x10) // r += a
+				{
+					vms.registers[reg1] += x;
+				}
+				else if(mode == 0x20) // r -= a
+				{
+					vms.registers[reg1] -= x;
+				}
+				else if(mode == 0x30) // r >>= a
+				{
+					vms.registers[reg1] >>= x;
+				}
+				else if(mode == 0x40) // r << a
+				{
+					vms.registers[reg1] <<= x;
+				}
+				else if(mode == 0x50) // r *= a
+				{
+					vms.registers[reg1] *= x;
+				}
+				else if(mode == 0x60) // r /= a
+				{
+					vms.registers[reg1] /= x;
+				}
+				else if(mode == 0x70) // r %= a
+				{
+					vms.registers[reg1] %= x;
+				}
+				else if(mode == 0x80) // r &= a
+				{
+					vms.registers[reg1] &= x;
+				}
+				else if(mode == 0x90) // r |= a
+				{
+					vms.registers[reg1] |= x;
+				}
+				else if(mode == 0xA0) // r ^= a
+				{
+					vms.registers[reg1] ^= x;
+				}
+				else if(mode == 0xB0) // r rotate right by a
+				{
+					vms.registers[reg1] >>= x;
+				}
+				else if(mode == 0xC0) // r rotate left by a
+				{
+					vms.registers[reg1] <<= x;
+				}
+			}
+
+			// else if(opcode == 0x0c) // register load
+			// {
+			// 	data2 = vms.pc++;
+			// 	reg2 = data2 & 0b111;
+			// 	reg3 = (data2 >> 3) & 0b111;
+			// 	mode = data2 & 0b11000000;
+
+			// 	// Mode 00: r = a (copy a to r)
+			// 	// Mode 01: r = *a (copy value at memory location a to r)
+			// 	// Mode 10: r = *(a + b) (copy value at memory location a + b to r)
+			// 	// Mode 11: reserved.
+
+			// 	if (mode == 0b00000000) // Mode 00
+			// 	{
+			// 		vms.registers[reg1] = vms.registers[reg2];
+			// 	}
+			// 	else if(mode == 0b01000000) // Mode 01
+			// 	{
+			// 		vms.registers[reg1] = ram[vms.registers[reg2]];
+			// 	}
+			// 	else if(mode == 0b10000000) // Mode 10
+			// 	{
+			// 		vms.registers[reg1] = ram[vms.registers[reg2] + vms.registers[reg3]];
+			// 	}
+			// }
+
+			// 4. RegisterSkip
+			
 			else if(opcode == 0x01) // copy from reg
 			{
 				vms.registers[reg1] = vms.registers[initCode[vms.pc++]];
-			}
-			else if(opcode == 0x02) // add immediate
-			{
-				vms.registers[reg1] += initCode[vms.pc++];
 			}
 			else if(opcode == 0x03) // add with reg
 			{
 				vms.registers[reg1] += vms.registers[initCode[vms.pc++]];
 			}
-			else if(opcode == 0x04) // subtract immediate
-			{
-				vms.registers[reg1] -= initCode[vms.pc++];
-			}
 			else if(opcode == 0x05) // subtract using reg
 			{
 				vms.registers[reg1] -= vms.registers[initCode[vms.pc++]];
-			}
-			else if(opcode == 0x06) // muliply immediate
-			{
-				vms.registers[reg1] *= vms.registers[initCode[vms.pc++]];
 			}
 			else if(opcode == 0x07) // multiply using reg
 			{
@@ -327,10 +725,6 @@ unsigned char vmRun(VMState* vmPtr)
 			else if(opcode == 0x09) // mod using reg
 			{
 				vms.registers[reg1] %= vms.registers[initCode[vms.pc++]];
-			}
-			else if(opcode == 0x0a) // skip instruction if reg is not equal to val
-			{
-				if(vms.registers[reg1] != initCode[vms.pc++]) vms.skipInstruction = true;
 			}
 			else if(opcode == 0x0b) // skip instruction if reg is not equal to reg
 			{
@@ -347,10 +741,6 @@ unsigned char vmRun(VMState* vmPtr)
 			else if(opcode == 0x0e) // skip instruction if reg is greater than reg
 			{
 				if(vms.registers[reg1] > vms.registers[initCode[vms.pc++]]) vms.skipInstruction = true;
-			}
-			else if(opcode == 0x0f) // skip instruction if reg is equal to val
-			{
-				if(vms.registers[reg1] == initCode[vms.pc++]) vms.skipInstruction = true;
 			}
 		}
 		else // general opcodes
@@ -451,6 +841,11 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				vms.pc++;
 				return VMRUN_RETURN_EXIT;
+			}
+
+			else if (opcode == 0x80) // BranchIfOverflow?? Or does this go in with extended regs?
+			{
+
 			}
 		}
 	}
