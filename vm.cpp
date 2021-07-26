@@ -243,9 +243,47 @@ unsigned char vmRun(VMState* vmPtr)
 			vms.skipInstruction = false;
 			continue;
 		}
+
+		// 1. Register-immediate opcodes.
+		// First Byte: 0rrrcccc
+		// 0 = Zero
+		// r = register
+		// c = opcode
+
+		// 0h, rrr: set immediate
+		// 1h, rrr: add immediate
+		// 2h, rrr: sub immediate
+		// 3h, rrr: mul immediate
+		// 4h, rrr: div immediate
+		// 5h, rrr: mod immediate
+		// 6h, rrr: skip= immediate
+		// 7h, rrr: skip!= immediate
+		// 8h, rrr: skip< immediate
+		// 9h, rrr: skip> immediate
+		// ah, rrr:
+		// bh, rrr:
+		// ch, rrr:
+		// dh, rrr:
+		// eh, rrr: register-register control flow
+		// fh, rrr: register-register math
+
 		
+		// 2. Register-register math.
+		// Second Byte: ccccrrrr
+		// c = opcode
+		// r = register (special registers r8 and higher accessible)
+		// r8, overflow is set under certain conditions
+		// r9, zero is set under certain conditions
+
+		// 3. Register-register math.
+		// Second Byte: cccccrrr
+		// c = opcode
+		// r = register
+
+		// 00h, rrr:
+		// 
 		
-		if(opcode < 0xF0) // register opcodes
+		if(opcode < 0b10000000) // register opcodes
 		{
 			reg1 = (opcode & 0b01110000) >> 4;
 			opcode &= 0b00001111;
