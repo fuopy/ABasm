@@ -127,6 +127,7 @@ unsigned char vmRun(VMState* vmPtr)
 			// Sets the carry flag if result is greater than 255.
 			// Sets the overflow flag if result is less than -128 or greater than +127.
 			// Sets the negative flag if the MSB of result is 1.
+			// Sets the overflow register to high byte of value.
 			else if(opcode == 0x01) // add immediate
 			{
 				CLEAR_ZERO();
@@ -136,6 +137,8 @@ unsigned char vmRun(VMState* vmPtr)
 				vms.overflow = 0;
 				largerResult = result;
 				largerResult += initCode[vms.pc++];
+				result = largerResult & 0xff;
+				vms.overflow = (largerResult >> 8) & 0xff;
 				CHECK_OVERFLOW(largerResult);
 				CHECK_CARRY(largerResult);
 				CHECK_ZERO(result);
@@ -150,6 +153,7 @@ unsigned char vmRun(VMState* vmPtr)
 			// Sets the carry flag if result is greater than 255.
 			// Sets the overflow flag if result is less than -128 or greater than +127.
 			// Sets the negative flag if the MSB of result is 1.
+			// Sets the overflow register to high byte of value.
 			else if(opcode == 0x02) // subtract immediate
 			{
 				CLEAR_ZERO();
@@ -159,6 +163,8 @@ unsigned char vmRun(VMState* vmPtr)
 				vms.overflow = 0;
 				largerResult = result;
 				largerResult -= initCode[vms.pc++];
+				result = largerResult & 0xff;
+				vms.overflow = (largerResult >> 8) & 0xff;
 				CHECK_OVERFLOW(largerResult);
 				CHECK_CARRY(largerResult);
 				CHECK_ZERO(result);
@@ -173,6 +179,7 @@ unsigned char vmRun(VMState* vmPtr)
 			// Sets the carry flag if result is greater than 255.
 			// Sets the overflow flag if result is less than -128 or greater than +127.
 			// Sets the negative flag if the MSB of result is 1.
+			// Sets the overflow register to high byte of value.
 			else if(opcode == 0x03)
 			{
 				CLEAR_ZERO();
@@ -182,6 +189,8 @@ unsigned char vmRun(VMState* vmPtr)
 				vms.overflow = 0;
 				largerResult = result;
 				largerResult *= vms.registers[initCode[vms.pc++]];
+				result = largerResult & 0xff;
+				vms.overflow = (largerResult >> 8) & 0xff;
 				CHECK_OVERFLOW(largerResult);
 				CHECK_CARRY(largerResult);
 				CHECK_ZERO(result);
@@ -198,7 +207,6 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				CLEAR_ZERO();
 				CLEAR_NEGATIVE();
-				vms.overflow = 0;
 				result /= vms.registers[initCode[vms.pc++]];
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
@@ -214,7 +222,6 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				CLEAR_ZERO();
 				CLEAR_NEGATIVE();
-				vms.overflow = 0;
 				result %= vms.registers[initCode[vms.pc++]];
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
@@ -250,7 +257,6 @@ unsigned char vmRun(VMState* vmPtr)
 				if(result < initCode[vms.pc++]) vms.skipInstruction = true;
 			}
 			
-			
 			// Opcode: sgti ///////////////////////////////////////////////////
 			// "Skip If Greater Than Immediate"
 			//
@@ -260,8 +266,15 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				if(result > initCode[vms.pc++]) vms.skipInstruction = true;
 			}
-
-			else if(opcode == 0x0a) // load absolute
+			
+			// Opcode: loada //////////////////////////////////////////////////
+			// "Load absolute"
+			//
+			// Loads a value from an absolute RAM address into the destination
+			// register.
+			// Sets the zero flag if result is 0.
+			// Sets the negative flag if the MSB of result is 1.
+			else if(opcode == 0x0a)
 			{
 				CLEAR_ZERO();
 				CLEAR_NEGATIVE();
@@ -269,11 +282,36 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-			else if(opcode == 0x0b) // store absolute
+
+			// Opcode: storea /////////////////////////////////////////////////
+			// "Store Absolute"
+			//
+			// Stores the value in the destination register to an absolute
+			// location in ram.
+			// Sets the zero flag if result is 0.
+			// Sets the negative flag if the MSB of result is 1.
+			else if(opcode == 0x0b)
 			{
 				ram[initCode[vms.pc++]] = result;
 			}
 
+			// Opcode: loadr //////////////////////////////////////////////////
+			// "Load Register"
+			//
+			// Loads from RAM to the destination register. Dereference mode
+			// is determined in the subcode. Special register values are
+			// useable.
+			//
+			// Dereference Mode 0: Copy register A value to destination
+			// register.
+			//
+			// Dereference Mode 1: Copy value from memory location pointed to
+			// by register A to destination register.
+			//
+			// Dereference Mode 2: Copy value from memory location pointed to
+			// by (register A + register B) to destination register.
+			//
+			// Dereference Mode 3: Reserved.
 			else if(opcode == 0x0c) // register load
 			{
 				data2 = vms.pc++;            // Read the next byte for data.
@@ -281,16 +319,8 @@ unsigned char vmRun(VMState* vmPtr)
 				reg3 = (data2 >> 3) & 0b111; // Extract another register.
 				mode = data2 & 0b11000000;   // Extract dereference mode.
 
-				// Here's what I want to be able to do:
-				// 1. Get a value from an absolute address. Handled earlier.
-				// Should I define an implicit register for this? an "A" register? Yikes!
-				// load absolute, r0 means *(address + value in r0)
-
-				// Mode 00: r = *a
-				// Mode 01: r = **a
-				// Mode 10: r = *a + b   // Compares to absolute and offset.
-				// Mode 11: r = *a + *b
-
+				// Dereference Mode 0: Copy register A value to destination
+				// register.
 				if (mode == 0b00000000) // r = a
 				{
 					CLEAR_ZERO();
@@ -299,6 +329,9 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
+
+				// Dereference Mode 1: Copy value from memory location pointed to
+				// by register A to destination register.
 				else if(mode == 0b01000000) // r = *a
 				{
 					CLEAR_ZERO();
@@ -307,6 +340,9 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
+
+				// Dereference Mode 2: Copy value from memory location pointed to
+				// by (register A + register B) to destination register.
 				else if(mode == 0b10000000) // r = *(a + b)
 				{
 					CLEAR_ZERO();
@@ -316,6 +352,19 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_NEGATIVE(result);
 				}
 			}
+
+			// Opcode: skipr //////////////////////////////////////////////////
+			// "Skip Register"
+			//
+			// Skips the next instruction based on comparisons between the
+			// destination register and register A.
+			//
+			// Subcode: eq => Skip if destination register == register A.
+			// Subcode: ne => Skip if destination register != register A.
+			// Subcode: gt => Skip if destination register > register A.
+			// Subcode: lt => Skip if destination register < register A.
+			// Subcode: ge => Skip if destination register >= register A.
+			// Subcode: le => Skip if destination register <= register A.
 			else if(opcode == 0x0e) // RegisterSkip
 			{
 				// Read the opcode.
@@ -335,31 +384,27 @@ unsigned char vmRun(VMState* vmPtr)
 				else if (reg2 == 0b1111) x = 0x00;                           // Constant: 0.
 
 				// Perform skip.
-				if(mode == 0x00) // Skip if r == a
-				{
-					if(result == x) vms.skipInstruction = true;
-				}
-				else if(mode == 0x10) // Skip if r != a
-				{
-					if(result != x) vms.skipInstruction = true;
-				}
-				else if(mode == 0x20) // Skip if r > a
-				{
-					if(result > x) vms.skipInstruction = true;
-				}
-				else if(mode == 0x30) // Skip if r < a
-				{
-					if(result < x) vms.skipInstruction = true;
-				}
-				else if(mode == 0x40) // Skip if r >= a
-				{
-					if(result < x) vms.skipInstruction = true;
-				}
-				else if(mode == 0x50) // Skip if r <= a
-				{
-					if(result < x) vms.skipInstruction = true;
-				}
+				// Subcode: eq => Skip if destination register == register A.
+				if(mode == 0x00) vms.skipInstruction = (result == x);
+				// Subcode: ne => Skip if destination register != register A.
+				else if(mode == 0x10) vms.skipInstruction = (result != x);
+				// Subcode: gt => Skip if destination register > register A.
+				else if(mode == 0x20) vms.skipInstruction = (result > x);
+				// Subcode: lt => Skip if destination register < register A.
+				else if(mode == 0x30) vms.skipInstruction = (result < x);
+				// Subcode: ge => Skip if destination register >= register A.
+				else if(mode == 0x40) vms.skipInstruction = (result >= x);
+				// Subcode: le => Skip if destination register <= register A.
+				else if(mode == 0x50) vms.skipInstruction = (result <= x);
 			}
+
+			// Opcode: mathr //////////////////////////////////////////////////
+			// "Math Register"
+			//
+			// Skips the next instruction based on comparisons between the
+			// destination register and register A.
+			//
+			// See subcode descriptions for more information.
 			else if(opcode == 0x0f) // RegisterMath
 			{
 				// Read the opcode.
@@ -379,103 +424,230 @@ unsigned char vmRun(VMState* vmPtr)
 				else if (reg2 == 0b1111) x = 0x00;                           // Constant: 0.
 
 				// Perform math.
-				if(mode == 0x00) // r = a
+
+				// Subcode: mathr load ////////////////////////////////////////
+				// "Load"
+				//
+				// Copies register A value to destination register.
+				// Sets the zero flag if result is 0.
+				// Sets the negative flag if the MSB of result is 1.
+				if(mode == 0x00)
 				{
+					CLEAR_ZERO();
+					CLEAR_CARRY();
+
 					// Perform the assignment.
 					result = x;
+
+					CHECK_ZERO(result);
+					CHECK_CARRY(result);
 				}
-				else if(mode == 0x10) // r += a
+
+				// Subcode: mathr add /////////////////////////////////////////
+				// "Add"
+				//
+				// Adds register A value to destination register.
+				// Sets the zero flag if result is 0.
+				// Sets the carry flag if result is greater than 255.
+				// Sets the overflow flag if result is less than -128 or greater than +127.
+				// Sets the negative flag if the MSB of result is 1.
+				// Sets the overflow register to high byte of value.
+				else if(mode == 0x10)
 				{
 					CLEAR_ZERO();
 					CLEAR_CARRY();
 					CLEAR_OVERFLOW();
 					CLEAR_NEGATIVE();
 					vms.overflow = 0;
-
-					// Perform the addition.
-					largerResult = result
+					largerResult = result;
 					largerResult += x;
 					result = largerResult & 0xff;
-					
 					vms.overflow = (largerResult >> 8) & 0xff;
-					
+					CHECK_OVERFLOW(largerResult);
+					CHECK_CARRY(largerResult);
+					CHECK_ZERO(result);
+					CHECK_NEGATIVE(result);
 				}
-				else if(mode == 0x20) // r -= a
-				{
-					// Clear zero, negative, overflow and carry flags.
-					vms.flags &= ^(VM_FLAG_ZERO | VM_FLAG_NEGATIVE | VM_FLAG_OVERFLOW | VM_FLAG_CARRY);
-					vms.overflow = 0;
 
-					// Perform the addition.
+				// Subcode: mathr sub /////////////////////////////////////////
+				// "Subtract"
+				//
+				// Subtracts register A value from destination register.
+				// Sets the zero flag if result is 0.
+				// Sets the carry flag if result is greater than 255.
+				// Sets the overflow flag if result is less than -128 or greater than +127.
+				// Sets the negative flag if the MSB of result is 1.
+				// Sets the overflow register to high byte of value.
+				else if(mode == 0x20)
+				{
+					CLEAR_ZERO();
+					CLEAR_CARRY();
+					CLEAR_OVERFLOW();
+					CLEAR_NEGATIVE();
+					vms.overflow = 0;
 					largerResult = result;
 					largerResult -= x;
 					result = largerResult & 0xff;
 					vms.overflow = (largerResult >> 8) & 0xff;
+					CHECK_OVERFLOW(largerResult);
+					CHECK_CARRY(largerResult);
+					CHECK_ZERO(result);
+					CHECK_NEGATIVE(result);
 				}
-				else if(mode == 0x30) // r >>= a
+
+				// Subcode: mathr rshift //////////////////////////////////////
+				// "Right Shift"
+				//
+				// Right-shifts destination register value register A times.
+				// Sets the zero flag if result is 0.
+				// Sets the carry flag to bit that was shifted out.
+				//
+				// Consider: Shifting multiple bits goes into overflow register.
+				else if(mode == 0x30)
 				{
 					// Move the lsb into the carry flag.
+					CLEAR_CARRY();
 					SET_CARRY_IF(result & 0b1);
 
 					// Perform the right shift.
 					result >>= x;
 					CHECK_ZERO(result);
 				}
-				else if(mode == 0x40) // r <<= a
+
+				// Subcode: mathr lshift //////////////////////////////////////
+				// "Left Shift"
+				//
+				// Left-shifts destination register value register A times.
+				// Sets the zero flag if result is 0.
+				// Sets the carry flag to bit that was shifted out.
+				else if(mode == 0x40)
 				{
 					// Move the msb into the carry flag.
+					CLEAR_CARRY();
 					SET_CARRY_IF(result & 0b10000000);
 					
-					// Perform the right shift.
+					// Perform the left shift.
 					result <<= x;
 					CHECK_ZERO(result);
 				}
-				else if(mode == 0x50) // r *= a
+
+				// Subcode: mathr mult ////////////////////////////////////////
+				// "Multiply"
+				//
+				// Multiplies destination register value by register A value.
+				// Sets the zero flag if result is 0.
+				// Sets the carry flag if result is greater than 255.
+				// Sets the overflow flag if result is less than -128 or greater than +127.
+				// Sets the negative flag if the MSB of result is 1.
+				// Sets the overflow register to high byte of value.
+				else if(mode == 0x50)
 				{
-					largerResult = result * x;
+					CLEAR_ZERO();
+					CLEAR_CARRY();
+					CLEAR_OVERFLOW();
+					CLEAR_NEGATIVE();
+					vms.overflow = 0;
+					largerResult = result;
+					largerResult *= x;
 					result = largerResult & 0xff;
 					vms.overflow = (largerResult >> 8) & 0xff;
-					SET_CARRY_IF(vms.overflow);
+					CHECK_OVERFLOW(largerResult);
+					CHECK_CARRY(largerResult);
 					CHECK_ZERO(result);
+					CHECK_NEGATIVE(result);
 				}
-				else if(mode == 0x60) // r /= a
+
+				// Subcode: mathr div /////////////////////////////////////////
+				// "Multiply"
+				//
+				// Divides destination register by register A.
+				// Sets the zero flag if result is 0.
+				// Sets the negative flag if the MSB of result is 1.
+				else if(mode == 0x60)
 				{
+					CLEAR_ZERO();
+					CLEAR_NEGATIVE();
 					result /= x;
 					CHECK_ZERO(result);
+					CHECK_NEGATIVE(result);
 				}
-				else if(mode == 0x70) // r %= a
+
+				// Subcode: mathr mod /////////////////////////////////////////
+				// "Modulo"
+				//
+				// Mods destination register by register A.
+				// Sets the zero flag if result is 0.
+				// Sets the negative flag if the MSB of result is 1.
+				else if(mode == 0x70)
 				{
+					CLEAR_ZERO();
+					CLEAR_NEGATIVE();
 					result %= x;
 					CHECK_ZERO(result);
+					CHECK_NEGATIVE(result);
 				}
-				else if(mode == 0x80) // r &= a
+
+				// Subcode: mathr and /////////////////////////////////////////
+				// "Bitwise And"
+				//
+				// Bitwise-ANDs destination register and register A.
+				// Sets the zero flag if result is 0.
+				else if(mode == 0x80)
 				{
+					CLEAR_ZERO();
 					result &= x;
 					CHECK_ZERO(result);
 				}
-				else if(mode == 0x90) // r |= a
+
+				// Subcode: mathr or //////////////////////////////////////////
+				// "Bitwise Or"
+				//
+				// Bitwise-ORs destination register and register A.
+				// Sets the zero flag if result is 0.
+				else if(mode == 0x90)
 				{
+					CLEAR_ZERO();
 					result |= x;
 					CHECK_ZERO(result);
 				}
+
+				// Subcode: mathr xor /////////////////////////////////////////
+				// "Bitwise Xor"
+				//
+				// Bitwise-XORs destination register and register A.
+				// Sets the zero flag if result is 0.
 				else if(mode == 0xA0) // r ^= a
 				{
+					CLEAR_ZERO();
 					result ^= x;
 					CHECK_ZERO(result);
 				}
+
+				// Subcode: mathr ror /////////////////////////////////////////
+				// "Right Rotate"
+				//
+				// Rotates bits right, LSB becomes MSB. (once for now.)
+				// Sets the zero flag if result is 0.
 				else if(mode == 0xB0) // r rotate right by a
 				{
+					CLEAR_ZERO();
 					temp = x & 0b1;
 					temp = temp ? 0b10000000 : 0;
-					result >>= x;
+					result >>= 1;
 					result |= temp;
 					CHECK_ZERO(result);
 				}
+
+				// Subcode: mathr rol /////////////////////////////////////////
+				// "Left Rotate"
+				//
+				// Rotates bits right, LSB becomes MSB. (once for now.)
+				// Sets the zero flag if result is 0.
 				else if(mode == 0xC0) // r rotate left by a
 				{
 					temp = x & 0b10000000;
 					temp = temp ? 1 : 0;
-					result <<= x;
+					result <<= 1;
 					result |= temp;
 					CHECK_ZERO(result);
 				}
