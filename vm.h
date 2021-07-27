@@ -438,3 +438,30 @@ unsigned char vmReset(VMState* vmPtr, bool breakpointsEnabled);
 	// 0xf8, 0x74, // 76: JUMP 74h
 	// 0xf8, 0x00, // 78: JUMP 00h
 
+
+			
+			// else if(opcode == 0x0c) // register load
+			// {
+			// 	data2 = vms.pc++;
+			// 	reg2 = data2 & 0b111;
+			// 	reg3 = (data2 >> 3) & 0b111;
+			// 	mode = data2 & 0b11000000;
+
+			// 	// Mode 00: r = a (copy a to r)
+			// 	// Mode 01: r = *a (copy value at memory location a to r)
+			// 	// Mode 10: r = *(a + b) (copy value at memory location a + b to r)
+			// 	// Mode 11: reserved.
+
+			// 	if (mode == 0b00000000) // Mode 00
+			// 	{
+			// 		vms.registers[reg1] = vms.registers[reg2];
+			// 	}
+			// 	else if(mode == 0b01000000) // Mode 01
+			// 	{
+			// 		vms.registers[reg1] = ram[vms.registers[reg2]];
+			// 	}
+			// 	else if(mode == 0b10000000) // Mode 10
+			// 	{
+			// 		vms.registers[reg1] = ram[vms.registers[reg2] + vms.registers[reg3]];
+			// 	}
+			// }

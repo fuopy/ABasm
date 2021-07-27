@@ -96,8 +96,10 @@ unsigned char vmRun(VMState* vmPtr)
 			continue;
 		}
 
-
-		if(opcode < 0b10000000) // register opcodes
+		// Register Opcodes ///////////////////////////////////////////////////
+		// These opcodes deal with register math, loading from memory, and
+		// saving to memory.
+		if(opcode < 0b10000000)
 		{
 			// Extract data from the opcode.
 			reg1 = (opcode & 0b01110000) >> 4; // The destination register.
@@ -520,6 +522,8 @@ unsigned char vmRun(VMState* vmPtr)
 				// Left-shifts destination register value register A times.
 				// Sets the zero flag if result is 0.
 				// Sets the carry flag to bit that was shifted out.
+				//
+				// Consider: Shifting multiple bits goes into overflow register.
 				else if(mode == 0x40)
 				{
 					// Move the msb into the carry flag.
@@ -628,6 +632,8 @@ unsigned char vmRun(VMState* vmPtr)
 				//
 				// Rotates bits right, LSB becomes MSB. (once for now.)
 				// Sets the zero flag if result is 0.
+				//
+				// Consider: Rotating multiple bits.
 				else if(mode == 0xB0) // r rotate right by a
 				{
 					CLEAR_ZERO();
@@ -643,8 +649,11 @@ unsigned char vmRun(VMState* vmPtr)
 				//
 				// Rotates bits right, LSB becomes MSB. (once for now.)
 				// Sets the zero flag if result is 0.
+				//
+				// Consider: Rotating multiple bits.
 				else if(mode == 0xC0) // r rotate left by a
 				{
+					CLEAR_ZERO();
 					temp = x & 0b10000000;
 					temp = temp ? 1 : 0;
 					result <<= 1;
@@ -656,43 +665,37 @@ unsigned char vmRun(VMState* vmPtr)
 				vms.overflow = (largerResult >> 8) & 0xff;
 			}
 			vms.registers[reg1] = result;
-			
-			// else if(opcode == 0x0c) // register load
-			// {
-			// 	data2 = vms.pc++;
-			// 	reg2 = data2 & 0b111;
-			// 	reg3 = (data2 >> 3) & 0b111;
-			// 	mode = data2 & 0b11000000;
-
-			// 	// Mode 00: r = a (copy a to r)
-			// 	// Mode 01: r = *a (copy value at memory location a to r)
-			// 	// Mode 10: r = *(a + b) (copy value at memory location a + b to r)
-			// 	// Mode 11: reserved.
-
-			// 	if (mode == 0b00000000) // Mode 00
-			// 	{
-			// 		vms.registers[reg1] = vms.registers[reg2];
-			// 	}
-			// 	else if(mode == 0b01000000) // Mode 01
-			// 	{
-			// 		vms.registers[reg1] = ram[vms.registers[reg2]];
-			// 	}
-			// 	else if(mode == 0b10000000) // Mode 10
-			// 	{
-			// 		vms.registers[reg1] = ram[vms.registers[reg2] + vms.registers[reg3]];
-			// 	}
-			// }
 		}
-		else // general opcodes
+
+		// General Opcodes ///////////////////////////////////////////////////
+		// These opcodes deal with externs and other domain-specific things.
+		// Additional custom opcodes should be added here.
+		else
 		{
+			// Opcode: NoOp ///////////////////////////////////////////////////
+			// "No Operation"
+			//
+			// This opcode does nothing.
 			if(opcode == 0xf0) // no operation
 			{
 				vms.pc++;
 			}
+
+			// Opcode: FillScreen ////////////////////////////////////////////
+			// "Fill screen with a specific color."
+			//
+			// Fills the screen with the immediate color.
 			else if(opcode == 0xf1) // fill screen with color
 			{
 				arduboy.fillScreen(initCode[vms.pc++]);
 			}
+
+			// Opcode: SetPixel ///////////////////////////////////////////////
+			// "Sets a pixel to a specific color."
+			//
+			// reg1: x position.
+			// reg2: y position.
+			// immediate value: color.
 			else if(opcode == 0xf2) // set pixel on screen (lsb: rx, ry, color)
 			{
 				opcode = initCode[vms.pc++];
@@ -702,6 +705,13 @@ unsigned char vmRun(VMState* vmPtr)
 				
 				arduboy.drawPixel(vms.registers[reg1], vms.registers[reg2], reg3);
 			}
+
+			// Opcode: GetPixel ///////////////////////////////////////////////
+			// "Gets the color of a pixel on the screen."
+			//
+			// reg1: x position.
+			// reg2: y position.
+			// reg3: destination register.
 			else if(opcode == 0xf3) // get pixel on screen (lsb: rx, ry, rdest)
 			{                       // does not modify rdest if coords are offscreen
 				opcode = initCode[vms.pc++];
@@ -715,6 +725,9 @@ unsigned char vmRun(VMState* vmPtr)
 				if(x < WIDTH && y < HEIGHT)
 					vms.registers[reg3] = arduboy.getPixel(x, y);
 			}
+
+			// Opcode: PlayTone ///////////////////////////////////////////////
+			// "Plays a tone."
 			else if(opcode == 0xf4) // play a tone (lsb: rtoneLo, rtoneHi, rDelay)
 			{
 				opcode = initCode[vms.pc++];
@@ -724,41 +737,65 @@ unsigned char vmRun(VMState* vmPtr)
 				
 				arduboy.tunes.tone(((short)vms.registers[reg2])*16 + vms.registers[reg1], vms.registers[reg3]);
 			}
+
+			// Opcode: WaitForNextFrame ///////////////////////////////////////
+			// "Waits until the next frame."
 			else if(opcode == 0xf5) // wait for the next frame
 			{
 				while(!arduboy.nextFrame());
 				vms.pc++;
 			}
+
+			// Opcode: SkipIfButtonsDown //////////////////////////////////////
+			// "Skips the next instruction if buttons are down"
 			else if(opcode == 0xf6) // skip if desired buttons are down
 			{
 				reg1 = initCode[vms.pc++];
 				if(arduboy.pressed(reg1)) vms.skipInstruction = true;
 			}
+			
+			// Opcode: SkipIfButtonsUp //////////////////////////////////////
+			// "Skips the next instruction if buttons are up"
 			else if(opcode == 0xf7) // skip if desired buttons are up
 			{
 				reg1 = initCode[vms.pc++];
 				if(arduboy.notPressed(reg1)) vms.skipInstruction = true;
 			}
+
+			// Opcode: JumpAbsolute ///////////////////////////////////////////
+			// "Jumps PC to address absolute"
 			else if(opcode == 0xf8) // jump pc to address in eeprom
 			{
 				opcode = initCode[vms.pc++];
 				vms.pc = opcode;
 			}
+
+			// Opcode: Jump Indirect //////////////////////////////////////////
+			// "Jumps PC to address based on register value"
 			else if(opcode == 0xf9) // jump pc to address in eeprom indirect reg
 			{
 				reg1 = initCode[vms.pc++];
 				vms.pc = vms.registers[reg1];
 			}
+
+			// Opcode: LoadRegisterValues /////////////////////////////////////
+			// TODO
 			else if(opcode == 0xfa) // restore register values from eeprom address
 			{
 				// todo
 				vms.pc++;
 			}
+
+			// Opcode: SaveRegisterValues /////////////////////////////////////
+			// TODO
 			else if(opcode == 0xfb) // dump register values to eeprom address
 			{
 				// todo
 				vms.pc++;
 			}
+
+			// Opcode: PrintString ////////////////////////////////////////////
+			// "Prints a string."
 			else if(opcode == 0xfc) // print a number of following characters
 			{
 				reg1 = initCode[vms.pc++];
@@ -768,21 +805,31 @@ unsigned char vmRun(VMState* vmPtr)
 					arduboy.print((char)initCode[vms.pc++]);
 				}
 			}
+
+			// Opcode: UpdateDisplay //////////////////////////////////////////
+			// "Writes the display buffer to screen."
 			else if(opcode == 0xfd) // display buffer to screen
 			{
 				arduboy.display();
 				vms.pc++;
 			}
+
+			// Opcode: Reserved ///////////////////////////////////////////////
 			else if(opcode == 0xfe) // reserved
 			{
 				vms.pc++;
 			}
+			
+			// Opcode: Exit ///////////////////////////////////////////////////
+			// "Exits the program."
 			else if(opcode == 0xff) // exit init routine
 			{
 				vms.pc++;
 				return VMRUN_RETURN_EXIT;
 			}
 
+			// Opcode: BranchIfOverflow ///////////////////////////////////////
+			// Consider.
 			else if (opcode == 0x80) // BranchIfOverflow?? Or does this go in with extended regs?
 			{
 
