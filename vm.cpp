@@ -9,18 +9,18 @@ unsigned char ram[PROGRAM_RAM_LENGTH];
 unsigned char initCode[PROGRAM_CODE_LENGTH];
 
 
-#define CLEAR_CARRY() (vms.flags &= ^VM_FLAG_CARRY)
-#define CLEAR_OVERFLOW() (vms.flags &= ^VM_FLAG_OVERFLOW)
-#define CLEAR_ZERO() (vms.flags &= ^VM_FLAG_ZERO)
-#define CLEAR_NEGATIVE() (vms.flags &= ^VM_FLAG_NEGATIVE)
+#define CLEAR_CARRY() (vms.flags &= ~VM_FLAG_CARRY)
+#define CLEAR_OVERFLOW() (vms.flags &= ~VM_FLAG_OVERFLOW)
+#define CLEAR_ZERO() (vms.flags &= ~VM_FLAG_ZERO)
+#define CLEAR_NEGATIVE() (vms.flags &= ~VM_FLAG_NEGATIVE)
 
 #define CHECK_ZERO(x) (vms.flags |= (!(x)) ? VM_FLAG_ZERO : 0)
 #define CHECK_OVERFLOW(x) ((vms.flags |= (((x) > 127) && ((x) < 65408))) ? VM_FLAG_OVERFLOW : 0)
 #define CHECK_CARRY(x) (vms.flags |= ((x) & 0xff00) ? VM_FLAG_CARRY : 0)
 #define CHECK_NEGATIVE(x) (vms.flags |= ((x) & 0b10000000) ? VM_FLAG_NEGATIVE : 0)
 
-#define SET_CARRY_IF(x) (vms.flags |= ((x))) ? VM_FLAG_CARRY : 0)
-#define SET_OVERFLOW_IF(x) (vms.flags |= ((x))) ? VM_FLAG_OVERFLOW : 0)
+#define SET_CARRY_IF(x) (vms.flags |= (x) ? VM_FLAG_CARRY : 0)
+#define SET_OVERFLOW_IF(x) (vms.flags |= (x) ? VM_FLAG_OVERFLOW : 0)
 
 unsigned char vmReset(VMState* vmPtr, bool breakpointsEnabled)
 {
@@ -117,8 +117,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CLEAR_ZERO();
 				CLEAR_NEGATIVE();
 				result = initCode[vms.pc++];
-				CHECK_ZERO();
-				CHECK_NEGATIVE();
+				CHECK_ZERO(result);
+				CHECK_NEGATIVE(result);
 			}
 			
 			// Opcode: addi /////////////////////////////////////////////////////
@@ -620,7 +620,7 @@ unsigned char vmRun(VMState* vmPtr)
 				//
 				// Bitwise-XORs destination register and register A.
 				// Sets the zero flag if result is 0.
-				else if(mode == 0xA0) // r ^= a
+				else if(mode == 0xA0) // r ~= a
 				{
 					CLEAR_ZERO();
 					result ^= x;

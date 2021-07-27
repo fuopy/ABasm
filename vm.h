@@ -11,11 +11,11 @@
 #define VMRUN_RETURN_KILL 2
 #define VMRUN_RETURN_ERROR 3
 
-#define VM_FLAG_CARRY 0b1000    // Unsigned result is too large
-#define VM_FLAG_ZERO 0b1001     // Result is zero
-#define VM_FLAG_OVERFLOW 0b1010 // Signed result is too large
-#define VM_FLAG_NEGATIVE 0b1011 // Result is negative
-#define VM_FLAG_SAMEBITS 0b1100 // Result exactly matched a bit pattern (maybe remove this one)
+constexpr unsigned char VM_FLAG_CARRY = 0b1000;    // Unsigned result is too large
+constexpr unsigned char VM_FLAG_ZERO = 0b1001;     // Result is zero
+constexpr unsigned char VM_FLAG_OVERFLOW = 0b1010; // Signed result is too large
+constexpr unsigned char VM_FLAG_NEGATIVE = 0b1011; // Result is negative
+constexpr unsigned char VM_FLAG_SAMEBITS = 0b1100; // Result exactly matched a bit pattern (maybe remove this one)
 
 struct VMState {
 	unsigned char registers[8];
