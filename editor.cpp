@@ -143,13 +143,15 @@ void printButton(unsigned char x, unsigned char y, unsigned char num)
 }
 
 
-const unsigned char opcodeToUiMapping[] = {
-	 0,  3,  4,  5,  6,  7, 15, 16,
-	17, 18,  1,  2,  1,  1,  1, 15,
-	16, 18, 17, 20, 19,  1,  3,  4,
-	 8,  9,  5,  6,  7, 12, 13, 14,
-	10, 11, 26, 29, 28, 27, 33, 32,
-	21, 22, 23, 24, 30, 31, 25
+const unsigned char opcodeToUiMapping[] PROGMEM = {
+	  0,  3,   4,   5,   6,   7,  15,  16,  17,  18,   1,   2,   1,   1,   1,  15, // 8-31
+	 16, 18,  17,  20,  19,   1,   3,   4,   8,   9,   5,   6,   7,  12,  13,  14, // 32-63
+	 10, 11,  26,  29,  28,  27,  33,  32,  21,  22,  23,  24, 255, 255,  25, 255, // 64-95
+	255, 25, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 96-127
+};
+
+const unsigned char opcodeToParameterMapping[] PROGMEM = {
+	
 };
 
 // Two lookup tables.
@@ -196,15 +198,17 @@ const unsigned char OnePlaneIDList[] PROGMEM = {
 	 34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49, // 0x70-0x7F
 };
 
-unsigned char getOpcodeStringID(unsigned char a, unsigned char b)
+const unsigned char GetOpcodeId(unsigned char a, unsigned char b)
 {
-	unsigned char id = 0;
-	unsigned char plane = (a & 0x80);
-
-	if (plane == 0)
+	// 1-plane
+	if (a & 0x80)
 	{
-		unsigned char opcode = (a >> 3);
-		
+		return pgm_read_byte(OnePlaneIDList + (a & 0x7f));
+	}
+	// 0-plane
+	else
+	{
+		return pgm_read_byte(OnePlaneIDList + ((a<<1) | (b & 0xf0)));
 	}
 }
 
