@@ -275,7 +275,7 @@ unsigned char vmRun(VMState* vmPtr)
 #pragma endregion
 #pragma region loada
 			// Opcode: loada //////////////////////////////////////////////////
-			// "Load absolute"
+			// "Load Absolute"
 			//
 			// Loads a value from an absolute RAM address into the destination
 			// register.
@@ -308,8 +308,7 @@ unsigned char vmRun(VMState* vmPtr)
 			// "Load Register"
 			//
 			// Loads from RAM to the destination register. Dereference mode
-			// is determined in the subcode. Special register values are
-			// useable.
+			// is determined in the subcode.
 			//
 			// Dereference Mode 0: Copy register A value to destination
 			// register.
