@@ -124,7 +124,6 @@ void printRegister(unsigned char x, unsigned char y, unsigned char num)
 
 void printButtonMap(unsigned char x, unsigned char y, unsigned char num)
 {
-	
 	if(num & 128) printButton(x, y, 6); else printButton(x, y, 0);
 	x += BUTTON_WIDTH + PARAM_SPACING;
 	if(num & 64) printButton(x, y, 5); else printButton(x, y, 0);
@@ -144,14 +143,70 @@ void printButton(unsigned char x, unsigned char y, unsigned char num)
 }
 
 
-const unsigned int opcodeToUiMapping[] = {
-	 0,  3,  4,  5,  6,  7, 15,  16,
-	17, 18,  1,  2,  1,  1,   1, 15,
-	16, 18, 17, 20, 19,  1,   3,  4,
-	 8,  9,  5,  6,  7, 12,  13, 14,
-	10, 11, 26, 29, 28, 27,  33, 32,
-	21, 22, 23, 24, 30, 31,  25
+const unsigned char opcodeToUiMapping[] = {
+	 0,  3,  4,  5,  6,  7, 15, 16,
+	17, 18,  1,  2,  1,  1,  1, 15,
+	16, 18, 17, 20, 19,  1,  3,  4,
+	 8,  9,  5,  6,  7, 12, 13, 14,
+	10, 11, 26, 29, 28, 27, 33, 32,
+	21, 22, 23, 24, 30, 31, 25
 };
+
+// Two lookup tables.
+// - One for the 0 plane.
+//    - Squishes the little bytes in.
+// - One for the 1 plane.
+//    - Keeps the same.
+
+// Zero Plane:
+// 0AAAArrr BBBB....
+// becomes
+// AAAABBBB
+const unsigned char ZeroPlaneIDList[] PROGMEM = {
+	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, // 0x00-0x0F
+	  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, // 0x10-0x1F
+	  2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // 0x20-0x2F
+	  3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3, // 0x30-0x3F
+	  4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4, // 0x40-0x4F
+	  5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5, // 0x50-0x5F
+	  6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6, // 0x60-0x6F
+	  7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // 0x70-0x7F
+	  8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, // 0x80-0x8F
+	  9,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9, // 0x90-0x9F 
+	 10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10, // 0xA0-0xAF
+	 11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11, // 0xB0-0xBF
+	 12,  12,  12,  12,  13,  13,  13,  13,  14,  14,  14,  14, 255, 255, 255, 255, // 0xC0-0xCF
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0xD0-0xDF
+	 15,  16,  17,  18,  19,  20, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0xE0-0xEF
+	 21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33, 255, 255, 255, // 0xF0-0xFF
+};
+
+// One Plane"
+// 1AAAAAAA ........
+// becomes
+// .AAAAAAA
+const unsigned char OnePlaneIDList[] PROGMEM = {
+	 50, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x00-0x0F
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x10-0x1F
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x20-0x2F
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x30-0x3F
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x40-0x4F
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x50-0x5F
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0x60-0x6F
+	 34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49, // 0x70-0x7F
+};
+
+unsigned char getOpcodeStringID(unsigned char a, unsigned char b)
+{
+	unsigned char id = 0;
+	unsigned char plane = (a & 0x80);
+
+	if (plane == 0)
+	{
+		unsigned char opcode = (a >> 3);
+		
+	}
+}
 
 void drawOpcode(unsigned char x, unsigned char y, unsigned char id)
 {
