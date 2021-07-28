@@ -143,19 +143,23 @@ void printButton(unsigned char x, unsigned char y, unsigned char num)
 	arduboy.drawBitmap(x, y, gfx_buttons + (unsigned short)8 * num, 8, 8, 1);
 }
 
-
 void drawOpcode(unsigned char x, unsigned char y, unsigned char id)
 {
-	unsigned short offset = (id&0x0f) * OPCODE_WIDTH;
+
+
+	// // Select the graphic to draw.
+	// // 1-plane
+	// unsigned short offset = (id & 0x0f) * OPCODE_WIDTH;
 	
-	if(id < 0xf0)
-	{
-		offset = ((id&0x0f)+16) * OPCODE_WIDTH;
-		
-		arduboy.drawBitmap(x+29, y, gfx_registers + 8*((id&0xf0)>>4), 8, 8, 1);
-	}
+	// // 0-plane
+	// if(id < 0xf0)
+	// {
+	// 	offset = ((id & 0x0f) + 16) * OPCODE_WIDTH;
+	// 	arduboy.drawBitmap(x+29, y, gfx_registers + 8 * ((id & 0xf0) >> 4), 8, 8, 1);
+	// }
 	
-	arduboy.drawBitmap(x, y, gfx_opcodes + offset, OPCODE_WIDTH, 8, 1);
+	// // Draw it!
+	// arduboy.drawBitmap(x, y, gfx_opcodes + offset, OPCODE_WIDTH, 8, 1);
 }
 
 
