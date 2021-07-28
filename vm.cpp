@@ -88,14 +88,8 @@ unsigned char vmRun(VMState* vmPtr)
 		*/
 		
 		//pdelay(25);
-		
-		if(vms.skipInstruction)
-		{
-			vms.pc++;
-			vms.skipInstruction = false;
-			continue;
-		}
 
+#pragma region register opcodes
 		// Register Opcodes ///////////////////////////////////////////////////
 		// These opcodes deal with register math, loading from memory, and
 		// saving to memory.
@@ -106,6 +100,7 @@ unsigned char vmRun(VMState* vmPtr)
 			opcode &= 0b00001111;              // The subopcode.
 			result = vms.registers[reg1];      // Hold onto the value of the destination register for later.
 			
+#pragma region loadi
 			// Opcode: loadi /////////////////////////////////////////////////////
 			// "Load Immediate"
 			//
@@ -120,7 +115,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-			
+#pragma endregion
+#pragma region addi
 			// Opcode: addi /////////////////////////////////////////////////////
 			// "Add Immediate"
 			//
@@ -146,7 +142,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-			
+#pragma endregion
+#pragma region subi
 			// Opcode: subi /////////////////////////////////////////////////////
 			// "Subtract Immediate"
 			//
@@ -172,7 +169,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-
+#pragma endregion
+#pragma region muli
 			// Opcode: muli ///////////////////////////////////////////////////
 			// "Multiply Immediate"
 			//
@@ -198,7 +196,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-
+#pragma endregion
+#pragma region divi
 			// Opcode: divi ///////////////////////////////////////////////////
 			// "Divide Immediate"
 			//
@@ -213,7 +212,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-
+#pragma endregion
+#pragma region modi
 			// Opcode: modi ///////////////////////////////////////////////////
 			// "Modulo Immediate"
 			//
@@ -228,7 +228,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-
+#pragma endregion
+#pragma region seqi
 			// Opcode: seqi ///////////////////////////////////////////////////
 			// "Skip If Equal Immediate"
 			//
@@ -238,7 +239,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				if(result == initCode[vms.pc++]) vms.skipInstruction = true;
 			}
-			
+#pragma endregion
+#pragma region snei
 			// Opcode: snei ///////////////////////////////////////////////////
 			// "Skip If Not Equal Immediate"
 			//
@@ -248,7 +250,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				if(result != initCode[vms.pc++]) vms.skipInstruction = true;
 			}
-			
+#pragma endregion
+#pragma region slti
 			// Opcode: slti ///////////////////////////////////////////////////
 			// "Skip If Less Than Immediate"
 			//
@@ -258,7 +261,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				if(result < initCode[vms.pc++]) vms.skipInstruction = true;
 			}
-			
+#pragma endregion
+#pragma region sgti
 			// Opcode: sgti ///////////////////////////////////////////////////
 			// "Skip If Greater Than Immediate"
 			//
@@ -268,7 +272,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				if(result > initCode[vms.pc++]) vms.skipInstruction = true;
 			}
-			
+#pragma endregion
+#pragma region loada
 			// Opcode: loada //////////////////////////////////////////////////
 			// "Load absolute"
 			//
@@ -284,7 +289,8 @@ unsigned char vmRun(VMState* vmPtr)
 				CHECK_ZERO(result);
 				CHECK_NEGATIVE(result);
 			}
-
+#pragma endregion
+#pragma region storea
 			// Opcode: storea /////////////////////////////////////////////////
 			// "Store Absolute"
 			//
@@ -296,7 +302,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				ram[initCode[vms.pc++]] = result;
 			}
-
+#pragma endregion
+#pragma region loadr
 			// Opcode: loadr //////////////////////////////////////////////////
 			// "Load Register"
 			//
@@ -354,7 +361,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_NEGATIVE(result);
 				}
 			}
-
+#pragma endregion
+#pragma region skipr
 			// Opcode: skipr //////////////////////////////////////////////////
 			// "Skip Register"
 			//
@@ -399,7 +407,8 @@ unsigned char vmRun(VMState* vmPtr)
 				// Subcode: le => Skip if destination register <= register A.
 				else if(mode == 0x50) vms.skipInstruction = (result <= x);
 			}
-
+#pragma endregion
+#pragma region mathr
 			// Opcode: mathr //////////////////////////////////////////////////
 			// "Math Register"
 			//
@@ -427,6 +436,7 @@ unsigned char vmRun(VMState* vmPtr)
 
 				// Perform math.
 
+#pragma region mathr load
 				// Subcode: mathr load ////////////////////////////////////////
 				// "Load"
 				//
@@ -444,7 +454,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_CARRY(result);
 				}
-
+#pragma endregion
+#pragma region mathr add
 				// Subcode: mathr add /////////////////////////////////////////
 				// "Add"
 				//
@@ -470,7 +481,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
-
+#pragma endregion
+#pragma region mathr sub
 				// Subcode: mathr sub /////////////////////////////////////////
 				// "Subtract"
 				//
@@ -496,7 +508,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
-
+#pragma endregion
+#pragma region mathr rshift
 				// Subcode: mathr rshift //////////////////////////////////////
 				// "Right Shift"
 				//
@@ -515,7 +528,8 @@ unsigned char vmRun(VMState* vmPtr)
 					result >>= x;
 					CHECK_ZERO(result);
 				}
-
+#pragma endregion
+#pragma region mathr lshift
 				// Subcode: mathr lshift //////////////////////////////////////
 				// "Left Shift"
 				//
@@ -534,7 +548,8 @@ unsigned char vmRun(VMState* vmPtr)
 					result <<= x;
 					CHECK_ZERO(result);
 				}
-
+#pragma endregion
+#pragma region mathr mult
 				// Subcode: mathr mult ////////////////////////////////////////
 				// "Multiply"
 				//
@@ -560,7 +575,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
-
+#pragma endregion
+#pragma region mathr div
 				// Subcode: mathr div /////////////////////////////////////////
 				// "Multiply"
 				//
@@ -575,7 +591,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
-
+#pragma endregion
+#pragma region mathr mod
 				// Subcode: mathr mod /////////////////////////////////////////
 				// "Modulo"
 				//
@@ -590,7 +607,8 @@ unsigned char vmRun(VMState* vmPtr)
 					CHECK_ZERO(result);
 					CHECK_NEGATIVE(result);
 				}
-
+#pragma endregion
+#pragma region mathr and
 				// Subcode: mathr and /////////////////////////////////////////
 				// "Bitwise And"
 				//
@@ -602,7 +620,8 @@ unsigned char vmRun(VMState* vmPtr)
 					result &= x;
 					CHECK_ZERO(result);
 				}
-
+#pragma endregion
+#pragma region mathr or
 				// Subcode: mathr or //////////////////////////////////////////
 				// "Bitwise Or"
 				//
@@ -614,7 +633,8 @@ unsigned char vmRun(VMState* vmPtr)
 					result |= x;
 					CHECK_ZERO(result);
 				}
-
+#pragma endregion
+#pragma region mathr xor
 				// Subcode: mathr xor /////////////////////////////////////////
 				// "Bitwise Xor"
 				//
@@ -626,7 +646,8 @@ unsigned char vmRun(VMState* vmPtr)
 					result ^= x;
 					CHECK_ZERO(result);
 				}
-
+#pragma endregion
+#pragma region mathr ror
 				// Subcode: mathr ror /////////////////////////////////////////
 				// "Right Rotate"
 				//
@@ -643,7 +664,8 @@ unsigned char vmRun(VMState* vmPtr)
 					result |= temp;
 					CHECK_ZERO(result);
 				}
-
+#pragma endregion
+#pragma region mathr rol
 				// Subcode: mathr rol /////////////////////////////////////////
 				// "Left Rotate"
 				//
@@ -666,12 +688,16 @@ unsigned char vmRun(VMState* vmPtr)
 			}
 			vms.registers[reg1] = result;
 		}
-
+#pragma endregion
+#pragma endregion
+#pragma endregion
+#pragma region general opcodes
 		// General Opcodes ///////////////////////////////////////////////////
 		// These opcodes deal with externs and other domain-specific things.
 		// Additional custom opcodes should be added here.
 		else
 		{
+#pragma region NoOp
 			// Opcode: NoOp ///////////////////////////////////////////////////
 			// "No Operation"
 			//
@@ -680,7 +706,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				vms.pc++;
 			}
-
+#pragma endregion
+#pragma region FillScreen
 			// Opcode: FillScreen ////////////////////////////////////////////
 			// "Fill screen with a specific color."
 			//
@@ -689,7 +716,8 @@ unsigned char vmRun(VMState* vmPtr)
 			{
 				arduboy.fillScreen(initCode[vms.pc++]);
 			}
-
+#pragma endregion
+#pragma region SetPixel
 			// Opcode: SetPixel ///////////////////////////////////////////////
 			// "Sets a pixel to a specific color."
 			//
@@ -705,7 +733,8 @@ unsigned char vmRun(VMState* vmPtr)
 				
 				arduboy.drawPixel(vms.registers[reg1], vms.registers[reg2], reg3);
 			}
-
+#pragma endregion
+#pragma region GetPixel
 			// Opcode: GetPixel ///////////////////////////////////////////////
 			// "Gets the color of a pixel on the screen."
 			//
@@ -725,7 +754,8 @@ unsigned char vmRun(VMState* vmPtr)
 				if(x < WIDTH && y < HEIGHT)
 					vms.registers[reg3] = arduboy.getPixel(x, y);
 			}
-
+#pragma endregion
+#pragma region PlayTone
 			// Opcode: PlayTone ///////////////////////////////////////////////
 			// "Plays a tone."
 			else if(opcode == 0xf4) // play a tone (lsb: rtoneLo, rtoneHi, rDelay)
@@ -737,7 +767,8 @@ unsigned char vmRun(VMState* vmPtr)
 				
 				arduboy.tunes.tone(((short)vms.registers[reg2])*16 + vms.registers[reg1], vms.registers[reg3]);
 			}
-
+#pragma endregion
+#pragma region WaitForNextFrame
 			// Opcode: WaitForNextFrame ///////////////////////////////////////
 			// "Waits until the next frame."
 			else if(opcode == 0xf5) // wait for the next frame
@@ -745,7 +776,8 @@ unsigned char vmRun(VMState* vmPtr)
 				while(!arduboy.nextFrame());
 				vms.pc++;
 			}
-
+#pragma endregion
+#pragma region SkipIfButtonsDown
 			// Opcode: SkipIfButtonsDown //////////////////////////////////////
 			// "Skips the next instruction if buttons are down"
 			else if(opcode == 0xf6) // skip if desired buttons are down
@@ -753,7 +785,8 @@ unsigned char vmRun(VMState* vmPtr)
 				reg1 = initCode[vms.pc++];
 				if(arduboy.pressed(reg1)) vms.skipInstruction = true;
 			}
-			
+#pragma endregion
+#pragma region SkipIfButtonsUp
 			// Opcode: SkipIfButtonsUp //////////////////////////////////////
 			// "Skips the next instruction if buttons are up"
 			else if(opcode == 0xf7) // skip if desired buttons are up
@@ -761,7 +794,8 @@ unsigned char vmRun(VMState* vmPtr)
 				reg1 = initCode[vms.pc++];
 				if(arduboy.notPressed(reg1)) vms.skipInstruction = true;
 			}
-
+#pragma endregion
+#pragma region JumpAbsolute
 			// Opcode: JumpAbsolute ///////////////////////////////////////////
 			// "Jumps PC to address absolute"
 			else if(opcode == 0xf8) // jump pc to address in eeprom
@@ -769,15 +803,17 @@ unsigned char vmRun(VMState* vmPtr)
 				opcode = initCode[vms.pc++];
 				vms.pc = opcode;
 			}
-
-			// Opcode: Jump Indirect //////////////////////////////////////////
+#pragma endregion
+#pragma region JumpIndirect
+			// Opcode: JumpIndirect ///////////////////////////////////////////
 			// "Jumps PC to address based on register value"
 			else if(opcode == 0xf9) // jump pc to address in eeprom indirect reg
 			{
 				reg1 = initCode[vms.pc++];
 				vms.pc = vms.registers[reg1];
 			}
-
+#pragma endregion
+#pragma region LoadRegisterValues
 			// Opcode: LoadRegisterValues /////////////////////////////////////
 			// TODO
 			else if(opcode == 0xfa) // restore register values from eeprom address
@@ -785,7 +821,8 @@ unsigned char vmRun(VMState* vmPtr)
 				// todo
 				vms.pc++;
 			}
-
+#pragma endregion
+#pragma region SaveRegisterValues
 			// Opcode: SaveRegisterValues /////////////////////////////////////
 			// TODO
 			else if(opcode == 0xfb) // dump register values to eeprom address
@@ -793,7 +830,8 @@ unsigned char vmRun(VMState* vmPtr)
 				// todo
 				vms.pc++;
 			}
-
+#pragma endregion
+#pragma region PrintString
 			// Opcode: PrintString ////////////////////////////////////////////
 			// "Prints a string."
 			else if(opcode == 0xfc) // print a number of following characters
@@ -805,7 +843,8 @@ unsigned char vmRun(VMState* vmPtr)
 					arduboy.print((char)initCode[vms.pc++]);
 				}
 			}
-
+#pragma endregion
+#pragma region UpdateDisplay
 			// Opcode: UpdateDisplay //////////////////////////////////////////
 			// "Writes the display buffer to screen."
 			else if(opcode == 0xfd) // display buffer to screen
@@ -813,13 +852,15 @@ unsigned char vmRun(VMState* vmPtr)
 				arduboy.display();
 				vms.pc++;
 			}
-
+#pragma endregion
+#pragma region Reserved
 			// Opcode: Reserved ///////////////////////////////////////////////
 			else if(opcode == 0xfe) // reserved
 			{
 				vms.pc++;
 			}
-			
+#pragma endregion
+#pragma region Exit
 			// Opcode: Exit ///////////////////////////////////////////////////
 			// "Exits the program."
 			else if(opcode == 0xff) // exit init routine
@@ -827,13 +868,16 @@ unsigned char vmRun(VMState* vmPtr)
 				vms.pc++;
 				return VMRUN_RETURN_EXIT;
 			}
-
+#pragma endregion
+#pragma region BranchIfOverflow
 			// Opcode: BranchIfOverflow ///////////////////////////////////////
 			// Consider.
 			else if (opcode == 0x80) // BranchIfOverflow?? Or does this go in with extended regs?
 			{
 
 			}
+#pragma endregion
+#pragma endregion
 		}
 	}
 }
