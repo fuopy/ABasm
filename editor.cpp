@@ -145,7 +145,8 @@ void printButton(unsigned char x, unsigned char y, unsigned char num)
 
 void drawOpcode(unsigned char x, unsigned char y, unsigned char id)
 {
-
+	// Decode the opcode to determine its canonical number.
+	
 
 	// // Select the graphic to draw.
 	// // 1-plane
